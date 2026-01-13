@@ -1,0 +1,8 @@
+{
+  "llm": {
+    "provider": "auto",
+    "model": "llama3.1",
+    "apiKey": "",
+    "ollamaUrl": "http://localhost:11434"
+  }
+}
