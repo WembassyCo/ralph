@@ -8,6 +8,8 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 [Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
 
+[Read how I updated Ralph to leverage Ollama](https://medium.com/@cmcintosh_3425/keep-ralph-from-eating-all-of-your-tokens-bac5dfe4cb97)
+
 ## Prerequisites
 
 - [Amp CLI](https://ampcode.com) installed and authenticated
