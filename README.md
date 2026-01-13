@@ -58,7 +58,9 @@ This enables automatic handoff when context fills up, allowing Ralph to handle l
 
 ### 1. Create a PRD
 
-Use the PRD skill to generate a detailed requirements document:
+a. Use (Edna)[https://github.com/wembassyco/edna] to plan and export your PRD for ralph
+
+b. Use the PRD skill to generate a detailed requirements document, or use :
 
 ```
 Load the prd skill and create a PRD for [your feature description]
@@ -68,7 +70,8 @@ Answer the clarifying questions. The skill saves output to `tasks/prd-[feature-n
 
 ### 2. Convert PRD to Ralph format
 
-Use the Ralph skill to convert the markdown PRD to JSON:
+a. Skip this step if your using Edna
+b. Use the Ralph skill to convert the markdown PRD to JSON:
 
 ```
 Load the ralph skill and convert tasks/prd-[feature-name].md to prd.json
