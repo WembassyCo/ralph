@@ -6,7 +6,7 @@ Ralph is an autonomous AI agent loop that runs [Amp](https://ampcode.com), Claud
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
-[Read my Ryan Carson's article on how he uses Ralph](https://x.com/ryancarson/status/2008548371712135632)
+[Read Ryan Carson's article on how he uses Ralph](https://x.com/ryancarson/status/2008548371712135632)
 
 [Read how I updated Ralph to leverage Ollama](https://medium.com/@cmcintosh_3425/keep-ralph-from-eating-all-of-your-tokens-bac5dfe4cb97)
 
