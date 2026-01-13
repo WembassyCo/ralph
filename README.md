@@ -2,7 +2,7 @@
 
 ![Ralph](ralph.webp)
 
-Ralph is an autonomous AI agent loop that runs [Amp](https://ampcode.com) repeatedly until all PRD items are complete. Each iteration is a fresh Amp instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
+Ralph is an autonomous AI agent loop that runs [Amp](https://ampcode.com), Claude, or Ollama repeatedly until all PRD items are complete. Each iteration is a fresh Amp instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
