@@ -2,7 +2,7 @@
 
 ![Ralph](ralph.webp)
 
-Ralph is an autonomous AI agent loop that runs [Amp](https://ampcode.com), Claude, or Ollama repeatedly until all PRD items are complete. Each iteration is a fresh Amp instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
+Ralph is an autonomous AI agent loop that runs [Amp](https://ampcode.com), Claude API, or Ollama repeatedly until all PRD items are complete. Each iteration is a fresh LLM instance with clean context. Memory persists via git history, `progress.txt`, and `prd.json`.
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
@@ -12,102 +12,160 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 ## Prerequisites
 
-- One of Three options for LLM processing
-  - [Amp CLI](https://ampcode.com) installed and authenticated (now optional)
-  - Claude API (optional)
-  - Ollama API access (optional)
-- `jq` installed (`brew install jq` on macOS)
-- A git repository for your project
+- **Python 3.11+** installed
+- **One of the following LLM options:**
+  - [Ollama](https://ollama.ai/) running locally (recommended for cost-free operation)
+  - [Claude API](https://www.anthropic.com/api) key (via `ANTHROPIC_API_KEY` environment variable)
+  - [Amp CLI](https://ampcode.com) installed and authenticated
+- **Git repository** for your project
+- **Optional:** [Edna](https://github.com/wembassyco/edna) for easy PRD creation and execution
 
 ## Setup
 
-### Option 1: Copy to your project
-
-Copy the ralph files into your project:
+### Install Python Dependencies
 
 ```bash
-# From your project root
-mkdir -p scripts/ralph
-cp /path/to/ralph/ralph.sh scripts/ralph/
-cp /path/to/ralph/prompt.md scripts/ralph/
-chmod +x scripts/ralph/ralph.sh
+cd ralph
+pip install -r requirements.txt
 ```
 
-### Option 2: Install skills globally
+### Configure LLM Provider
 
-Copy the skills to your Amp config for use across all projects:
+Ralph auto-detects available LLM providers in this order:
+1. **Ollama** (checks for running instance at `http://localhost:11434`)
+2. **Claude API** (checks for `ANTHROPIC_API_KEY` environment variable)
+3. **Amp CLI** (checks for `amp` command in PATH)
 
-```bash
-cp -r skills/prd ~/.config/amp/skills/
-cp -r skills/ralph ~/.config/amp/skills/
-```
-
-### Configure Amp auto-handoff (recommended)
-
-Add to `~/.config/amp/settings.json`:
+You can override auto-detection using a `config.json` file or command-line flag:
 
 ```json
 {
-  "amp.experimental.autoHandoff": { "context": 90 }
+  "llm": {
+    "provider": "claude",
+    "model": "claude-3-5-sonnet-20241022",
+    "apiKey": "sk-ant-...",
+    "ollamaUrl": "http://localhost:11434"
+  }
 }
 ```
 
-This enables automatic handoff when context fills up, allowing Ralph to handle large stories that exceed a single context window.
+Or use the `--config` flag:
+```bash
+python ralph.py 10 --config my-config.json
+```
+
+### Set up Environment Variables (Optional)
+
+For Claude API:
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+For custom Ollama URL:
+```bash
+export OLLAMA_URL="http://localhost:11434"
+```
 
 ## Workflow
 
-### 1. Create a PRD
+### Recommended: Use Edna (Easiest)
 
-a. Use (Edna)[https://github.com/wembassyco/edna] to plan and export your PRD for ralph
+**[Edna](https://github.com/wembassyco/edna)** is a web UI that makes it easy to create PRDs and run Ralph with real-time progress tracking.
 
-b. Use the PRD skill to generate a detailed requirements document, or use :
+1. **Start Edna:**
+   ```bash
+   docker-compose up
+   ```
+   Visit [http://localhost:5173](http://localhost:5173)
 
+2. **Create a PRD:**
+   - Click "New PRD"
+   - Chat with Edna to plan your feature
+   - Edna will generate user stories with acceptance criteria
+
+3. **Run Ralph:**
+   - Click "▶ Run Ralph" button
+   - Configure iterations, LLM provider, and model
+   - Watch real-time progress with live logs
+   - Optional: Connect to GitHub for automatic commits
+
+That's it! Edna handles everything including PRD creation, Ralph execution, progress tracking, and git integration.
+
+### Alternative: Manual Command Line
+
+If you prefer command-line usage:
+
+#### 1. Create a PRD
+
+Create a `prd.json` file with this structure:
+
+```json
+{
+  "project": "MyApp",
+  "branchName": "ralph/my-feature",
+  "description": "Feature description",
+  "userStories": [
+    {
+      "id": "1",
+      "title": "Story title",
+      "description": "What to build",
+      "acceptanceCriteria": ["Criterion 1", "Criterion 2"],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
 ```
-Load the prd skill and create a PRD for [your feature description]
-```
 
-Answer the clarifying questions. The skill saves output to `tasks/prd-[feature-name].md`.
+See `prd.json.example` for reference.
 
-### 2. Convert PRD to Ralph format
-
-a. Skip this step if your using Edna
-b. Use the Ralph skill to convert the markdown PRD to JSON:
-
-```
-Load the ralph skill and convert tasks/prd-[feature-name].md to prd.json
-```
-
-This creates `prd.json` with user stories structured for autonomous execution.
-
-### 3. Run Ralph
+#### 2. Run Ralph
 
 ```bash
-./scripts/ralph/ralph.sh [max_iterations]
+python ralph.py [max_iterations] [--config config.json]
 ```
 
-Default is 10 iterations.
+Default is 10 iterations. Example:
 
-Ralph will:
+```bash
+# Use auto-detected LLM provider
+python ralph.py 10
+
+# Use specific config file
+python ralph.py 15 --config my-llm-config.json
+
+# Use backwards-compatible bash wrapper
+./ralph.sh 10
+```
+
+#### What Ralph Does
+
+On each iteration, Ralph will:
 1. Create a feature branch (from PRD `branchName`)
 2. Pick the highest priority story where `passes: false`
-3. Implement that single story
-4. Run quality checks (typecheck, tests)
-5. Commit if checks pass
-6. Update `prd.json` to mark story as `passes: true`
-7. Append learnings to `progress.txt`
-8. Repeat until all stories pass or max iterations reached
+3. Spawn a fresh LLM instance with the prompt
+4. Implement that single story
+5. Run quality checks (typecheck, tests)
+6. Commit if checks pass
+7. Update `prd.json` to mark story as `passes: true`
+8. Append learnings to `progress.txt`
+9. Repeat until all stories pass or max iterations reached
+
+When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>` and exits.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
-| `ralph.sh` | The bash loop that spawns fresh Amp instances |
-| `prompt.md` | Instructions given to each Amp instance |
+| `ralph.py` | Main Python script - orchestrates the LLM loop |
+| `ralph.sh` | Backwards-compatible bash wrapper (calls `ralph.py`) |
+| `config.json` | LLM configuration (provider, model, API keys) |
+| `requirements.txt` | Python dependencies (anthropic, ollama) |
+| `prompt.md` | Instructions given to each LLM instance |
 | `prd.json` | User stories with `passes` status (the task list) |
 | `prd.json.example` | Example PRD format for reference |
 | `progress.txt` | Append-only learnings for future iterations |
-| `skills/prd/` | Skill for generating PRDs |
-| `skills/ralph/` | Skill for converting PRDs to JSON |
 | `flowchart/` | Interactive visualization of how Ralph works |
 
 ## Flowchart
@@ -128,10 +186,12 @@ npm run dev
 
 ### Each Iteration = Fresh Context
 
-Each iteration spawns a **new Amp instance** with clean context. The only memory between iterations is:
+Each iteration spawns a **new LLM instance** with clean context. The only memory between iterations is:
 - Git history (commits from previous iterations)
 - `progress.txt` (learnings and context)
 - `prd.json` (which stories are done)
+
+This applies to all providers (Amp, Claude API, Ollama).
 
 ### Small Tasks
 
@@ -148,14 +208,17 @@ Too big (split these):
 - "Add authentication"
 - "Refactor the API"
 
-### AGENTS.md Updates Are Critical
+### Progress Tracking and Learnings
 
-After each iteration, Ralph updates the relevant `AGENTS.md` files with learnings. This is key because Amp automatically reads these files, so future iterations (and future human developers) benefit from discovered patterns, gotchas, and conventions.
+After each iteration, Ralph appends learnings to `progress.txt`. This file is included in subsequent iterations so the LLM can learn from previous attempts.
 
-Examples of what to add to AGENTS.md:
+**When using Amp:** Ralph also updates `AGENTS.md` files since Amp automatically reads them.
+
+Examples of what gets recorded:
 - Patterns discovered ("this codebase uses X for Y")
 - Gotchas ("do not forget to update Z when changing W")
 - Useful context ("the settings panel is in component X")
+- Error resolutions and workarounds
 
 ### Feedback Loops
 
@@ -166,7 +229,11 @@ Ralph only works if there are feedback loops:
 
 ### Browser Verification for UI Stories
 
-Frontend stories must include "Verify in browser using dev-browser skill" in acceptance criteria. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
+Frontend stories should include browser verification in acceptance criteria when possible.
+
+**When using Amp:** Use "Verify in browser using dev-browser skill" in acceptance criteria and Ralph will automatically verify changes in the browser.
+
+**When using Claude/Ollama:** Manual verification may be required, or implement custom browser automation tools.
 
 ### Stop Condition
 
@@ -198,7 +265,33 @@ Edit `prompt.md` to customize Ralph's behavior for your project:
 
 Ralph automatically archives previous runs when you start a new feature (different `branchName`). Archives are saved to `archive/YYYY-MM-DD-feature-name/`.
 
+## LLM Provider Notes
+
+### Ollama (Recommended for Local/Free)
+- Run `ollama pull llama3.1` to download the model
+- Start Ollama: `ollama serve`
+- Ralph auto-detects at `http://localhost:11434`
+- Cost: Free (runs locally)
+- Speed: Fast (depends on your hardware)
+
+### Claude API
+- Sign up at [console.anthropic.com](https://console.anthropic.com/)
+- Set `ANTHROPIC_API_KEY` environment variable
+- Recommended model: `claude-3-5-sonnet-20241022`
+- Cost: Pay per token (see Anthropic pricing)
+- Speed: Fast (API calls)
+
+### Amp CLI
+- Install from [ampcode.com](https://ampcode.com)
+- Authenticate via CLI
+- Ralph will use `amp` command
+- Cost: Depends on Amp pricing
+- Speed: Fast (CLI integration)
+
 ## References
 
 - [Geoffrey Huntley's Ralph article](https://ghuntley.com/ralph/)
+- [Edna PRD Planning Tool](https://github.com/wembassyco/edna)
 - [Amp documentation](https://ampcode.com/manual)
+- [Anthropic Claude API](https://www.anthropic.com/api)
+- [Ollama](https://ollama.ai/)
