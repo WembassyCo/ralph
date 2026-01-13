@@ -12,7 +12,10 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 ## Prerequisites
 
-- [Amp CLI](https://ampcode.com) installed and authenticated
+- One of Three options for LLM processing
+  - [Amp CLI](https://ampcode.com) installed and authenticated (now optional)
+  - Claude API (optional)
+  - Ollama API access (optional)
 - `jq` installed (`brew install jq` on macOS)
 - A git repository for your project
 
